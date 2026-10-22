@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!uid) return
     let cancelled = false
-    supabase.rpc('is_admin').then(({ data }) => {
+    supabase.rpc('is_novel_admin').then(({ data }) => {
       if (!cancelled) setCheck({ uid, admin: data === true })
     })
     return () => {

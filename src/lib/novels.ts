@@ -52,7 +52,7 @@ export async function deleteNovel(id: string): Promise<void> {
 
 export async function listPages(novelId: string): Promise<PageRow[]> {
   const { data, error } = await supabase
-    .from('pages')
+    .from('novel_pages')
     .select('*')
     .eq('novel_id', novelId)
     .order('position', { ascending: true })
@@ -64,7 +64,7 @@ export async function addPages(
   novelId: string,
   pages: { chapter: string | null; data: PageData; position: number }[],
 ): Promise<void> {
-  const { error } = await supabase.from('pages').insert(pages.map((p) => ({ ...p, novel_id: novelId })))
+  const { error } = await supabase.from('novel_pages').insert(pages.map((p) => ({ ...p, novel_id: novelId })))
   if (error) throw error
 }
 
@@ -72,12 +72,12 @@ export async function updatePage(
   id: string,
   patch: { chapter?: string | null; data?: PageData; position?: number },
 ): Promise<void> {
-  const { error } = await supabase.from('pages').update(patch).eq('id', id)
+  const { error } = await supabase.from('novel_pages').update(patch).eq('id', id)
   if (error) throw error
 }
 
 export async function deletePage(id: string): Promise<void> {
-  const { error } = await supabase.from('pages').delete().eq('id', id)
+  const { error } = await supabase.from('novel_pages').delete().eq('id', id)
   if (error) throw error
 }
 
@@ -91,7 +91,7 @@ export async function applyOrder(pages: PageRow[], orderedIds: string[]): Promis
 }
 
 export async function renameChapter(novelId: string, from: string | null, to: string | null): Promise<void> {
-  let query = supabase.from('pages').update({ chapter: to }).eq('novel_id', novelId)
+  let query = supabase.from('novel_pages').update({ chapter: to }).eq('novel_id', novelId)
   query = from === null ? query.is('chapter', null) : query.eq('chapter', from)
   const { error } = await query
   if (error) throw error

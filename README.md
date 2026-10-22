@@ -20,15 +20,18 @@ Formatting inside `text`: blank line between paragraphs, `*italic*` or `_italic_
 
 ## Admin only
 
-Readers never sign in. Writing is limited to admins, enforced by row-level security:
+Readers never sign in. Writing is limited to novel admins, enforced by row-level security.
 
-- Public sign-ups are off (*Authentication → Sign In / Providers → Allow new users to sign up*).
-- Create an admin in *Authentication → Users → Add user*, then mark them as an admin in the SQL editor:
+The database lives in the **mai-cookbook** Supabase project (free tier allows two projects), in tables prefixed for this app: `novel_admins`, `novels`, `novel_pages`. That project's GitHub integration applies the schema from the mai-cookbook repo; `supabase/migrations/` here is a copy for reference or for moving to a dedicated project later.
+
+There is no sign-up form here. Create the admin in that project under *Authentication → Users → Add user*, then mark them as a novel admin in the SQL editor:
 
 ```sql
-insert into public.admins (user_id)
+insert into public.novel_admins (user_id)
 select id from auth.users where email = 'admin@example.com';
 ```
+
+Accounts that only exist for the cookbook are not novel admins, so they can read but never write.
 
 Novels start as drafts that only admins can see. Tick **Published** to make one public.
 
@@ -38,10 +41,10 @@ Vite + React + TypeScript + Tailwind v4, Supabase (auth + Postgres), hosted on V
 
 ## Setup
 
-1. Create a Supabase project and apply `supabase/migrations/` (GitHub integration with *Deploy to production* on `main`, or paste into the SQL editor).
+1. Use a Supabase project with `supabase/migrations/` applied (currently the shared mai-cookbook project).
 2. Copy `.env.example` to `.env` with the project URL and publishable key.
 3. `npm install`, then `npm run dev`. Without `.env`, `/preview` shows the reader with a sample book.
 
 ## Deploy
 
-Import the repo in Vercel (Vite preset). `.env.production` holds the public Supabase URL and publishable key, so no environment variables are needed. Set the Supabase *Site URL* to the Vercel URL.
+Import the repo in Vercel (Vite preset). `.env.production` holds the public Supabase URL and publishable key, so no environment variables are needed. Sign-in is email and password only, so no auth redirect URLs are needed.
