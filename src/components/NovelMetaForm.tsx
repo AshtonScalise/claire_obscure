@@ -45,21 +45,21 @@ export function NovelMetaForm({ initial = {}, initialPublic = false, submitLabel
     <form onSubmit={submit} className="space-y-3">
       <input
         className="w-full font-display text-2xl"
-        placeholder="Title"
+        placeholder="Book title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
       />
       <div className="grid sm:grid-cols-2 gap-3">
         <input placeholder="Author (optional)" value={author} onChange={(e) => setAuthor(e.target.value)} />
         <input
-          placeholder="Cover image URL (optional)"
+          placeholder="Cover picture link, https://… (optional)"
           value={cover}
           onChange={(e) => setCover(e.target.value)}
         />
       </div>
       <textarea
         className="w-full min-h-[6rem]"
-        placeholder="Description shown on the book's page (optional)"
+        placeholder="A short blurb readers see before they start (optional)"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />

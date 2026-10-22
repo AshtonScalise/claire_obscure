@@ -11,13 +11,13 @@ export function NovelNew() {
           ← library
         </Link>
         <h1 className="font-display text-4xl mt-1">New novel</h1>
-        <p className="text-muted mt-1">Start with the title. You'll add pages next, one JSON dump at a time.</p>
+        <p className="text-muted mt-1">Give it a title. Next you'll write the first page of Chapter 1. Everything here can be changed later.</p>
       </div>
       <NovelMetaForm
-        submitLabel="Create novel"
+        submitLabel="Create book & write page 1"
         onSave={async (meta, isPublic) => {
           const row = await saveNovel(meta, isPublic)
-          navigate(`/n/${row.id}/manage`)
+          navigate(`/n/${row.id}/pages/new?chapter=${encodeURIComponent('Chapter 1')}`)
         }}
       />
     </div>

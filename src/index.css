@@ -12,6 +12,7 @@
   --accent: #946618;
   --accent-ink: #fbf7ef;
   --danger: #9b2c2c;
+  --desk: #e7dcc8;
   color-scheme: light;
 }
 .dark {
@@ -23,6 +24,7 @@
   --accent: #d4a24c;
   --accent-ink: #15110b;
   --danger: #e07a7a;
+  --desk: #070605;
   color-scheme: dark;
 }
 
@@ -35,6 +37,7 @@
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
   --color-danger: var(--danger);
+  --color-desk: var(--desk);
   --font-display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
   --font-book: "EB Garamond", "Iowan Old Style", Georgia, serif;
 }

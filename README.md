@@ -2,6 +2,16 @@
 
 A digital novel site. Anyone can sign up and write their own books, page by page: each page is a JSON dump, and pages are grouped into chapters by name. Readers open the site and read, no account needed: page turning with buttons, arrow keys or swipes, a chapter menu, adjustable text size, light and dark pages, and the reader's place remembered.
 
+## Writing
+
+Click **New novel**, name it, and you land on page 1. The page editor is a normal form: pick or start a chapter, add an optional heading, write the text (Italic, Bold and Scene break buttons do the formatting), and optionally add a picture link. A live preview shows the page as readers will see it. **Save & write next page** keeps you writing; **Edit book** lists every chapter and page to rename, reorder, edit or delete, and has the **Publish** button.
+
+Prefer JSON? Every page editor has a **Paste JSON** tab, described below.
+
+## Reading
+
+Each book shows as a 3D hardback that swings open when you start reading. Pages turn with a GSAP page flip (skipped when the system asks for reduced motion), with arrow keys, swipes, or the Previous / Next buttons.
+
 ## Page JSON
 
 ```json

@@ -79,9 +79,13 @@ export async function listPages(novelId: string): Promise<PageRow[]> {
 export async function addPages(
   novelId: string,
   pages: { chapter: string | null; data: PageData; position: number }[],
-): Promise<void> {
-  const { error } = await supabase.from('novel_pages').insert(pages.map((p) => ({ ...p, novel_id: novelId })))
+): Promise<PageRow[]> {
+  const { data, error } = await supabase
+    .from('novel_pages')
+    .insert(pages.map((p) => ({ ...p, novel_id: novelId })))
+    .select()
   if (error) throw error
+  return (data as PageRow[]).sort((a, b) => a.position - b.position)
 }
 
 export async function updatePage(
