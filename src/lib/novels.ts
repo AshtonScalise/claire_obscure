@@ -5,6 +5,7 @@ export type NovelData = Omit<NovelMeta, 'title'>
 
 export type NovelRow = {
   id: string
+  user_id: string
   title: string
   data: NovelData
   is_public: boolean
@@ -22,9 +23,24 @@ export type PageRow = {
   updated_at: string
 }
 
-/** Published novels for readers; admins also get drafts (row-level security decides). */
-export async function listNovels(): Promise<NovelRow[]> {
-  const { data, error } = await supabase.from('novels').select('*').order('updated_at', { ascending: false })
+/** Every published novel, from any account. Works without signing in. */
+export async function listPublicNovels(): Promise<NovelRow[]> {
+  const { data, error } = await supabase
+    .from('novels')
+    .select('*')
+    .eq('is_public', true)
+    .order('updated_at', { ascending: false })
+  if (error) throw error
+  return data as NovelRow[]
+}
+
+/** Novels owned by this account, published or draft. */
+export async function listMyNovels(userId: string): Promise<NovelRow[]> {
+  const { data, error } = await supabase
+    .from('novels')
+    .select('*')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
   if (error) throw error
   return data as NovelRow[]
 }

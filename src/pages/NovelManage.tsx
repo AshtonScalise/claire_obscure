@@ -10,13 +10,14 @@ import { AI_PROMPT } from '../data/example'
 export function NovelManage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
-  const { novel, pages, error, loading, reload } = useNovel(id)
+  const { novel, pages, error, loading, reload, isOwner } = useNovel(id)
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [copied, setCopied] = useState<'ok' | 'fail' | null>(null)
 
   if (error) return <p className="text-danger text-sm">{error}</p>
   if (loading || !novel || !pages) return <p className="text-muted text-sm">Loading…</p>
+  if (!isOwner) return <p className="text-muted">Only the author of this book can edit it.</p>
 
   const chapters = chaptersOf(pages)
 

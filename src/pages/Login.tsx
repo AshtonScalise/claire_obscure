@@ -4,36 +4,43 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth-context'
 import { Brand } from '../components/Layout'
 
-/**
- * Username-only admin login, by request: the username is the only key.
- * Supabase needs an email and a password, so the account is `<username>@claire-obscure.app`
- * (never mailed) and its password is the username itself.
- */
-const USERNAME_EMAIL_DOMAIN = 'claire-obscure.app'
-
-function credentials(username: string) {
-  const name = username.trim().toLowerCase()
-  return { email: `${name}@${USERNAME_EMAIL_DOMAIN}`, password: name }
-}
-
-/** Admin sign-in only. Readers never need an account, and there is no sign-up. */
+/** Same sign-in as mAI Cookbook: anyone can create an account and write their own books. */
 export function Login() {
   const { session, loading } = useAuth()
   const location = useLocation()
   const from = (location.state as { from?: string } | null)?.from ?? '/'
-  const [login, setLogin] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
 
   if (!loading && session) return <Navigate to={from} replace />
 
-  async function signIn(e: FormEvent) {
-    e.preventDefault()
+  async function run(action: () => Promise<{ error: { message: string } | null }>, okText: string) {
     setBusy(true)
-    setError(null)
-    const { error } = await supabase.auth.signInWithPassword(credentials(login))
+    setMessage(null)
+    const { error } = await action()
     setBusy(false)
-    if (error) setError(error.message === 'Invalid login credentials' ? 'Unknown username.' : error.message)
+    setMessage(error ? { kind: 'err', text: error.message } : { kind: 'ok', text: okText })
+  }
+
+  function signIn(e: FormEvent) {
+    e.preventDefault()
+    run(() => supabase.auth.signInWithPassword({ email, password }), 'Signed in.')
+  }
+
+  function signUp() {
+    run(
+      () => supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin + from } }),
+      'Account created. If email confirmation is on, check your inbox.',
+    )
+  }
+
+  function magicLink() {
+    run(
+      () => supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin + from } }),
+      'Magic link sent. Check your inbox.',
+    )
   }
 
   return (
@@ -41,26 +48,44 @@ export function Login() {
       <form onSubmit={signIn} className="w-full max-w-sm space-y-4">
         <Brand />
         <p className="text-sm text-muted">
-          Admin sign-in. Readers don't need an account.{' '}
+          Sign in to write your own books. Reading never needs an account.{' '}
           <Link to="/" className="text-accent hover:underline">
-            Back to the library
+            Browse the library
           </Link>
         </p>
         <input
-          type="text"
+          type="email"
           required
-          autoComplete="username"
-          autoCapitalize="none"
-          spellCheck={false}
-          placeholder="username"
+          autoComplete="email"
+          placeholder="email"
           className="w-full"
-          value={login}
-          onChange={(e) => setLogin(e.target.value)}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
-        <button type="submit" className="btn btn-primary w-full" disabled={busy}>
-          {busy ? 'Signing in…' : 'Sign in'}
-        </button>
-        {error && <p className="text-sm text-danger">{error}</p>}
+        <input
+          type="password"
+          autoComplete="current-password"
+          placeholder="password"
+          className="w-full"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <div className="flex gap-2">
+          <button type="submit" className="btn btn-primary" disabled={busy || !email || !password}>
+            Sign in
+          </button>
+          <button type="button" className="btn btn-ghost" disabled={busy || !email || !password} onClick={signUp}>
+            Create account
+          </button>
+          <button type="button" className="btn btn-ghost ml-auto" disabled={busy || !email} onClick={magicLink}>
+            Magic link
+          </button>
+        </div>
+        {message && (
+          <p className={`text-sm ${message.kind === 'err' ? 'text-danger' : 'text-emerald-600 dark:text-emerald-400'}`}>
+            {message.text}
+          </p>
+        )}
       </form>
     </div>
   )

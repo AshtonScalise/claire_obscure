@@ -1,6 +1,6 @@
 # Claire Obscure
 
-A digital novel reader. Admins build a book page by page: each page is a JSON dump, and pages are grouped into chapters by name. Readers open the site and read, no account needed: page turning with buttons, arrow keys or swipes, a chapter menu, adjustable text size, light and dark pages, and the reader's place remembered.
+A digital novel site. Anyone can sign up and write their own books, page by page: each page is a JSON dump, and pages are grouped into chapters by name. Readers open the site and read, no account needed: page turning with buttons, arrow keys or swipes, a chapter menu, adjustable text size, light and dark pages, and the reader's place remembered.
 
 ## Page JSON
 
@@ -18,22 +18,13 @@ Only `text` or `image` is required. Pages with the same `chapter` form a chapter
 
 Formatting inside `text`: blank line between paragraphs, `*italic*` or `_italic_`, `**bold**`, and a line of `***` for a scene break. Nothing is rendered as HTML.
 
-## Admin only
+## Accounts
 
-Readers never sign in. Writing is limited to novel admins, enforced by row-level security.
+Works like mAI Cookbook: anyone can create an account (email and password, or a magic link), and every account owns its books. Only a book's author can edit it, enforced by row-level security. Readers never need an account for published books.
 
-The database lives in the **mai-cookbook** Supabase project (free tier allows two projects), in tables prefixed for this app: `novel_admins`, `novels`, `novel_pages`. That project's GitHub integration applies the schema from the mai-cookbook repo; `supabase/migrations/` here is a copy for reference or for moving to a dedicated project later.
+New books start as drafts that only their author can see. Tick **Published** to make one public. Signed-in users get **My books** and **Everyone** tabs in the library.
 
-There is no sign-up form here, and admins sign in with **just a username**: the username is the only key, so anyone who knows it can edit. Behind the scenes the account is `name@claire-obscure.app` (never emailed) with the password set to the same `name` (Supabase requires 6+ characters). Create it in that project under *Authentication → Users → Add user* with **Auto Confirm User** ticked, then mark it as a novel admin in the SQL editor:
-
-```sql
-insert into public.novel_admins (user_id)
-select id from auth.users where email = 'name@claire-obscure.app';
-```
-
-Accounts that only exist for the cookbook are not novel admins, so they can read but never write.
-
-Novels start as drafts that only admins can see. Tick **Published** to make one public.
+The database lives in the **mai-cookbook** Supabase project (the free tier allows two projects), in the tables `novels` and `novel_pages`. That project's GitHub integration applies the schema from the mai-cookbook repo; `supabase/migrations/` here is a copy for reference or for moving to a dedicated project later. Sign-up confirmation emails need this site's URL in that project's *Authentication → URL Configuration → Redirect URLs*.
 
 ## Stack
 
@@ -47,4 +38,4 @@ Vite + React + TypeScript + Tailwind v4, Supabase (auth + Postgres), hosted on V
 
 ## Deploy
 
-Import the repo in Vercel (Vite preset). `.env.production` holds the public Supabase URL and publishable key, so no environment variables are needed. Sign-in is email and password only, so no auth redirect URLs are needed.
+Import the repo in Vercel (Vite preset). `.env.production` holds the public Supabase URL and publishable key, so no environment variables are needed. Add the Vercel URL to the Supabase redirect URLs so sign-up and magic-link emails land back here.

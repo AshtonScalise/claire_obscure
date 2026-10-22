@@ -1,43 +1,17 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
-import { AuthContext } from './auth-context'
+import { AuthContext, type AuthState } from './auth-context'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null)
-  const [sessionLoading, setSessionLoading] = useState(true)
-  // Admin status is tagged with the user it was checked for, so a stale answer is never used.
-  const [check, setCheck] = useState<{ uid: string; admin: boolean } | null>(null)
+  const [state, setState] = useState<AuthState>({ session: null, loading: true })
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      setSessionLoading(false)
-    })
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s)
-      setSessionLoading(false)
+    supabase.auth.getSession().then(({ data }) => setState({ session: data.session, loading: false }))
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setState({ session, loading: false })
     })
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  const uid = session?.user.id
-  useEffect(() => {
-    if (!uid) return
-    let cancelled = false
-    supabase.rpc('is_novel_admin').then(({ data }) => {
-      if (!cancelled) setCheck({ uid, admin: data === true })
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [uid])
-
-  const adminPending = Boolean(uid) && check?.uid !== uid
-  const value = {
-    session,
-    loading: sessionLoading || adminPending,
-    isAdmin: Boolean(uid) && check?.uid === uid && check?.admin === true,
-  }
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>
 }

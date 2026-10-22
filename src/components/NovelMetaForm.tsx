@@ -71,7 +71,7 @@ export function NovelMetaForm({ initial = {}, initialPublic = false, submitLabel
           onChange={(e) => setIsPublic(e.target.checked)}
         />
         Published
-        <span className="text-muted">{isPublic ? 'anyone can read it' : 'draft, only admins can see it'}</span>
+        <span className="text-muted">{isPublic ? 'anyone can read it' : 'draft, only you can see it'}</span>
       </label>
       {errors.length > 0 && (
         <ul className="text-sm text-danger space-y-1">

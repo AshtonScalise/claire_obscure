@@ -11,10 +11,11 @@ import { EXAMPLE_PAGES } from '../data/example'
 export function PageEdit() {
   const { id = '', pageId } = useParams()
   const [params] = useSearchParams()
-  const { novel, pages, error, loading } = useNovel(id)
+  const { novel, pages, error, loading, isOwner } = useNovel(id)
 
   if (error) return <p className="text-danger text-sm">{error}</p>
   if (loading || !novel || !pages) return <p className="text-muted text-sm">Loading…</p>
+  if (!isOwner) return <p className="text-muted">Only the author of this book can edit it.</p>
 
   const editing = pageId ? pages.find((p) => p.id === pageId) : undefined
   if (pageId && !editing) return <p className="text-danger text-sm">That page no longer exists.</p>

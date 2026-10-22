@@ -1,14 +1,12 @@
 import { Link, useParams } from 'react-router-dom'
 import { useNovel } from '../lib/useNovel'
-import { useAuth } from '../lib/auth-context'
 import { chaptersOf, wordCount } from '../lib/book'
 import { readStored } from '../lib/theme'
 import { Cover } from '../components/Cover'
 
 export function NovelView() {
   const { id = '' } = useParams()
-  const { isAdmin } = useAuth()
-  const { novel, pages, error, loading } = useNovel(id)
+  const { novel, pages, error, loading, isOwner } = useNovel(id)
 
   if (error) return <p className="text-danger text-sm">{error}</p>
   if (loading || !novel || !pages) return <p className="text-muted text-sm">Loading…</p>
@@ -59,7 +57,7 @@ export function NovelView() {
               </Link>
             )
           )}
-          {isAdmin && (
+          {isOwner && (
             <Link to={`/n/${id}/manage`} className="btn btn-ghost">
               Manage pages
             </Link>

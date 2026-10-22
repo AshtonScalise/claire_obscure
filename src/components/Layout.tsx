@@ -12,7 +12,7 @@ export function Brand() {
 }
 
 export function Layout() {
-  const { session, isAdmin } = useAuth()
+  const { session, loading } = useAuth()
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-line">
@@ -21,16 +21,25 @@ export function Layout() {
             <Brand />
           </Link>
           <div className="flex items-center gap-2 text-sm">
-            {isAdmin && (
+            {session && (
               <Link to="/new" className="btn btn-primary">
                 New novel
               </Link>
             )}
             <ThemeToggle />
-            {session && (
-              <button className="btn btn-ghost" onClick={() => supabase.auth.signOut()}>
-                Sign out
-              </button>
+            {session ? (
+              <>
+                <span className="hidden md:inline text-muted truncate max-w-[180px]">{session.user.email}</span>
+                <button className="btn btn-ghost" onClick={() => supabase.auth.signOut()}>
+                  Sign out
+                </button>
+              </>
+            ) : (
+              !loading && (
+                <Link to="/login" className="btn btn-ghost">
+                  Sign in
+                </Link>
+              )
             )}
           </div>
         </div>
@@ -38,13 +47,8 @@ export function Layout() {
       <main className="mx-auto w-full max-w-5xl px-4 py-8 flex-1">
         <Outlet />
       </main>
-      <footer className="mx-auto w-full max-w-5xl px-4 py-6 text-xs text-muted flex justify-between">
-        <span>Clair-obscur: light and shadow.</span>
-        {!session && (
-          <Link to="/login" className="hover:text-ink">
-            Admin
-          </Link>
-        )}
+      <footer className="mx-auto w-full max-w-5xl px-4 py-6 text-xs text-muted">
+        Clair-obscur: light and shadow.
       </footer>
     </div>
   )

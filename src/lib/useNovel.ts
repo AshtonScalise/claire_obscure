@@ -4,10 +4,11 @@ import { useAuth } from './auth-context'
 
 type State = { key: string; novel?: NovelRow; pages?: PageRow[]; error?: string }
 
-/** Loads a novel and its pages once auth is known (admins can see drafts). */
+/** Loads a novel and its pages once auth is known (owners can see their own drafts). */
 export function useNovel(id: string) {
-  const { loading: authLoading, isAdmin } = useAuth()
-  const key = `${id}:${isAdmin}`
+  const { session, loading: authLoading } = useAuth()
+  const uid = session?.user.id
+  const key = `${id}:${uid ?? ''}`
   const [state, setState] = useState<State | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -24,5 +25,12 @@ export function useNovel(id: string) {
 
   const reload = useCallback(() => setReloadToken((t) => t + 1), [])
   const current = state?.key === key ? state : null
-  return { novel: current?.novel, pages: current?.pages, error: current?.error, loading: !current, reload }
+  return {
+    novel: current?.novel,
+    pages: current?.pages,
+    error: current?.error,
+    loading: !current,
+    isOwner: Boolean(uid) && current?.novel?.user_id === uid,
+    reload,
+  }
 }

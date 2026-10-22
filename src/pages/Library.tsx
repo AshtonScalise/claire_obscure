@@ -1,39 +1,73 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { listNovels, type NovelRow } from '../lib/novels'
+import { Link, useSearchParams } from 'react-router-dom'
+import { listMyNovels, listPublicNovels, type NovelRow } from '../lib/novels'
 import { useAuth } from '../lib/auth-context'
 import { Cover } from '../components/Cover'
 
+type View = 'mine' | 'everyone'
+
 export function Library() {
-  const { loading, isAdmin } = useAuth()
-  // Tagged with the admin state it was loaded for, so signing in shows drafts without a stale list.
-  const [result, setResult] = useState<{ admin: boolean; rows?: NovelRow[]; error?: string } | null>(null)
+  const { session, loading } = useAuth()
+  const uid = session?.user.id
+  const [params, setParams] = useSearchParams()
+  const view: View = uid && params.get('view') !== 'everyone' ? 'mine' : 'everyone'
+
+  // Results are tagged with what they were loaded for, so switching views never shows a stale list.
+  const loadKey = `${view}:${uid ?? ''}`
+  const [result, setResult] = useState<{ key: string; rows?: NovelRow[]; error?: string } | null>(null)
+  const current = result?.key === loadKey ? result : null
 
   useEffect(() => {
     if (loading) return
     let cancelled = false
-    listNovels()
-      .then((rows) => !cancelled && setResult({ admin: isAdmin, rows }))
-      .catch((e) => !cancelled && setResult({ admin: isAdmin, error: e.message }))
+    const load = view === 'mine' && uid ? listMyNovels(uid) : listPublicNovels()
+    load
+      .then((rows) => !cancelled && setResult({ key: loadKey, rows }))
+      .catch((e) => !cancelled && setResult({ key: loadKey, error: e.message }))
     return () => {
       cancelled = true
     }
-  }, [loading, isAdmin])
-
-  const current = result?.admin === isAdmin ? result : null
+  }, [loading, view, uid, loadKey])
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-display text-4xl">Library</h1>
-        <p className="text-muted mt-1">{isAdmin ? 'All novels, including drafts.' : 'Pick a book and start reading.'}</p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-4xl">Library</h1>
+          <p className="text-muted mt-1">
+            {view === 'mine' ? 'Your books, published and drafts.' : 'Pick a book and start reading.'}
+          </p>
+        </div>
+        {uid && (
+          <div className="flex rounded-md border border-line p-0.5 text-sm">
+            {(['mine', 'everyone'] as View[]).map((v) => (
+              <button
+                key={v}
+                className={`px-3 py-1 rounded cursor-pointer ${view === v ? 'bg-accent text-accent-ink' : 'text-muted hover:text-ink'}`}
+                onClick={() => setParams(v === 'everyone' ? { view: 'everyone' } : {})}
+              >
+                {v === 'mine' ? 'My books' : 'Everyone'}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {current?.error && <p className="text-danger text-sm">{current.error}</p>}
       {!current && <p className="text-muted text-sm">Loading…</p>}
       {current?.rows?.length === 0 && (
         <p className="text-muted">
-          {isAdmin ? 'No novels yet. Start one with New novel.' : 'Nothing published yet. Check back soon.'}
+          {view === 'mine' ? (
+            <>
+              No books yet.{' '}
+              <Link to="/new" className="text-accent hover:underline">
+                Start your first novel
+              </Link>
+              .
+            </>
+          ) : (
+            'Nothing published yet. Check back soon.'
+          )}
         </p>
       )}
 
@@ -46,6 +80,11 @@ export function Library() {
                 {!n.is_public && (
                   <span className="absolute top-2 right-2 rounded bg-black/60 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-white">
                     draft
+                  </span>
+                )}
+                {view === 'everyone' && n.user_id === uid && (
+                  <span className="absolute top-2 left-2 rounded bg-accent px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-accent-ink">
+                    yours
                   </span>
                 )}
               </div>
