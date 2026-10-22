@@ -7,7 +7,7 @@ import { ThemeToggle } from './ThemeToggle'
 export function Brand() {
   return (
     <span className="font-display text-2xl tracking-tight">
-      Claire <span className="text-accent italic">Obscure</span>
+      Clair<span className="text-accent italic">-Obscur</span>
     </span>
   )
 }

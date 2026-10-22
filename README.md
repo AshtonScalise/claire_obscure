@@ -1,4 +1,6 @@
-# Claire Obscure
+# Clair-Obscur
+
+(Repository name: `claire_obscure`.)
 
 A digital novel site. Anyone can sign up and write their own books, page by page: each page is a JSON dump, and pages are grouped into chapters by name. Readers open the site and read, no account needed: page turning with buttons, arrow keys or swipes, a chapter menu, adjustable text size, light and dark pages, and the reader's place remembered.
 

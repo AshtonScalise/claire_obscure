@@ -10,7 +10,7 @@ import { NovelView } from './pages/NovelView'
 import { ReaderPage } from './pages/ReaderPage'
 import { NovelNew } from './pages/NovelNew'
 import { NovelManage } from './pages/NovelManage'
-import { PageEdit } from './pages/PageEdit'
+import { PageEdit, PageEditor } from './pages/PageEdit'
 import { Login } from './pages/Login'
 import { Setup } from './pages/Setup'
 import { EXAMPLE_PAGES } from './data/example'
@@ -26,6 +26,16 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
 const signedIn = (el: ReactNode) => <RequireAuth>{el}</RequireAuth>
 
+/** The sample book as stored rows, for trying the editor before Supabase is set up. */
+const SAMPLE_ROWS = EXAMPLE_PAGES.map((p, i) => ({
+  ...splitChapter(p),
+  id: `sample-${i}`,
+  novel_id: 'preview',
+  position: i + 1,
+  created_at: '',
+  updated_at: '',
+}))
+
 export default function App() {
   if (!supabaseConfigured)
     return (
@@ -40,6 +50,20 @@ export default function App() {
               backTo="/"
               storageKey="co:pos:preview"
             />
+          }
+        />
+        <Route
+          path="/preview/write"
+          element={
+            <div className="mx-auto max-w-5xl px-4 py-8">
+              <PageEditor
+                novelId="preview"
+                novelTitle="The Lantern Keeper"
+                pages={SAMPLE_ROWS}
+                initialChapter="Chapter 2: Grey Wax"
+                startNewChapter={false}
+              />
+            </div>
           }
         />
         <Route path="*" element={<Setup />} />

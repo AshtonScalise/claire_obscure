@@ -55,7 +55,7 @@ type Mode = 'write' | 'json'
 const NONE = '__none__'
 const NEW = '__new__'
 
-function PageEditor({ novelId, novelTitle, pages, editing, initialChapter, afterId, startNewChapter }: EditorProps) {
+export function PageEditor({ novelId, novelTitle, pages, editing, initialChapter, afterId, startNewChapter }: EditorProps) {
   const navigate = useNavigate()
   const existingChapters = useMemo(
     () => [...new Set(pages.map((p) => p.chapter).filter((c): c is string => Boolean(c)))],
