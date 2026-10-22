@@ -1,4 +1,5 @@
-import { Link, Outlet } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
 import { supabase } from '../lib/supabase'
 import { ThemeToggle } from './ThemeToggle'
@@ -11,8 +12,18 @@ export function Brand() {
   )
 }
 
+/** OAuth sign-in failures come back as ?error_description=… (or in the #hash) on whatever page they return to. */
+function authErrorFrom(search: string, hash: string): string | null {
+  const raw =
+    new URLSearchParams(search).get('error_description') ?? new URLSearchParams(hash.slice(1)).get('error_description')
+  return raw ? decodeURIComponent(raw.replace(/\+/g, ' ')) : null
+}
+
 export function Layout() {
   const { session, loading } = useAuth()
+  const location = useLocation()
+  const authError = authErrorFrom(location.search, location.hash)
+  const [dismissed, setDismissed] = useState<string | null>(null)
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-line">
@@ -44,6 +55,18 @@ export function Layout() {
           </div>
         </div>
       </header>
+      {authError && dismissed !== authError && (
+        <div className="mx-auto w-full max-w-5xl px-4 pt-4">
+          <div className="flex items-start justify-between gap-3 rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-sm">
+            <span>
+              <strong>Sign-in didn't finish.</strong> {authError}
+            </span>
+            <button className="btn-icon" onClick={() => setDismissed(authError)} aria-label="Dismiss">
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
       <main className="mx-auto w-full max-w-5xl px-4 py-8 flex-1">
         <Outlet />
       </main>
