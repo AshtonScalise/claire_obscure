@@ -95,7 +95,7 @@ export function ChaptersView({ title, author, pages, readPath, upTo, upLabel, st
                           {c.title ?? (chapters.length === 1 ? 'Begin reading' : 'Untitled')}
                         </span>
                         <span className="flex-1 border-b border-dotted border-muted/50 -translate-y-1" aria-hidden />
-                        <span className="text-sm text-muted tabular-nums">p. {c.start + 1}</span>
+                        <span className="shrink-0 whitespace-nowrap text-sm text-muted tabular-nums">p. {c.start + 1}</span>
                       </Link>
                     </li>
                   ))}
