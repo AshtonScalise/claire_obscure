@@ -4,12 +4,20 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth-context'
 import { Brand } from '../components/Layout'
 
+/** Supabase logins are emails, so a plain username is stored as `<username>@claire-obscure.app` (never mailed). */
+export const USERNAME_EMAIL_DOMAIN = 'claire-obscure.app'
+
+function toLoginEmail(login: string) {
+  const value = login.trim().toLowerCase()
+  return value.includes('@') ? value : `${value}@${USERNAME_EMAIL_DOMAIN}`
+}
+
 /** Admin sign-in only. Readers never need an account, and there is no sign-up. */
 export function Login() {
   const { session, loading } = useAuth()
   const location = useLocation()
   const from = (location.state as { from?: string } | null)?.from ?? '/'
-  const [email, setEmail] = useState('')
+  const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -20,9 +28,9 @@ export function Login() {
     e.preventDefault()
     setBusy(true)
     setError(null)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({ email: toLoginEmail(login), password })
     setBusy(false)
-    if (error) setError(error.message)
+    if (error) setError(error.message === 'Invalid login credentials' ? 'Wrong username or password.' : error.message)
   }
 
   return (
@@ -36,13 +44,15 @@ export function Login() {
           </Link>
         </p>
         <input
-          type="email"
+          type="text"
           required
-          autoComplete="email"
-          placeholder="email"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          placeholder="username"
           className="w-full"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={login}
+          onChange={(e) => setLogin(e.target.value)}
         />
         <input
           type="password"
