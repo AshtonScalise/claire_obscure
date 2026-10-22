@@ -6,7 +6,7 @@ A digital novel site. Anyone can sign up and write their own books, page by page
 
 ## Writing
 
-Click **New novel**, name it, and you land on page 1. The page editor is a normal form: pick or start a chapter, add an optional heading, write the text (Italic, Bold and Scene break buttons do the formatting), and optionally add a picture link. A live preview shows the page as readers will see it. **Save & write next page** keeps you writing; **Edit book** lists every chapter and page to rename, reorder, edit or delete, and has the **Publish** button.
+Click **New novel**, name it, and you land on page 1. The page editor is a normal form: pick or start a chapter, add an optional heading, write the text in a word-processor-style box (Bold and Italic show as you type, Enter starts a paragraph, Ctrl/Cmd+B and +I work, and pasting from Google Docs or Word keeps bold and italics), and optionally add a picture link. A live preview shows the page as readers will see it. **Save & write next page** keeps you writing; **Edit book** lists every chapter and page to rename, reorder, edit or delete, and has the **Publish** button.
 
 Prefer JSON? Every page editor has a **Paste JSON** tab, described below.
 

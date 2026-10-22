@@ -6,7 +6,7 @@ const EMPHASIS = /(\*\*[^*\n]+\*\*|\*[^*\s][^*\n]*\*|_[^_\s][^_\n]*_)/g
 function inline(line: string, keyBase: string): ReactNode[] {
   return line.split(EMPHASIS).map((part, i) => {
     const key = `${keyBase}-${i}`
-    if (/^\*\*[^*]+\*\*$/.test(part)) return <strong key={key}>{part.slice(2, -2)}</strong>
+    if (/^\*\*[^*]+\*\*$/.test(part)) return <strong key={key}>{inline(part.slice(2, -2), key)}</strong>
     if (/^\*[^*]+\*$/.test(part) || /^_[^_]+_$/.test(part)) return <em key={key}>{part.slice(1, -1)}</em>
     return part
   })

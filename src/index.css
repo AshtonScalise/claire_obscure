@@ -96,3 +96,18 @@ input, textarea, select {
 @media (prefers-reduced-motion: reduce) {
   .page-in { animation: none; }
 }
+
+/* Visual page editor */
+.rich-editor p { margin: 0 0 0.75em; }
+.rich-editor hr {
+  border: 0;
+  height: 1.5em;
+  margin: 0.5em 0 1em;
+  text-align: center;
+  overflow: visible;
+}
+.rich-editor hr::after {
+  content: "* * *";
+  color: var(--accent);
+  letter-spacing: 0.5em;
+}

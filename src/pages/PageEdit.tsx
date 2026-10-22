@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useNovel } from '../lib/useNovel'
 import { addPages, updatePage, type PageRow } from '../lib/novels'
 import { chaptersOf, positionsBetween } from '../lib/book'
 import { PageInputSchema, parsePagesJson, splitChapter, type PageData } from '../lib/schema'
 import { PageView } from '../components/PageView'
+import { RichEditor } from '../components/RichEditor'
 import { EXAMPLE_PAGES } from '../data/example'
 
 /** Loads the book, then hands fully-known starting values to the editor. */
@@ -78,7 +79,6 @@ export function PageEditor({ novelId, novelTitle, pages, editing, initialChapter
   const [json, setJson] = useState('')
   const [errors, setErrors] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
-  const textRef = useRef<HTMLTextAreaElement>(null)
 
   // Everything to be saved, from whichever tab is active. A "chapter" inside pasted JSON wins.
   const fromForm = useMemo(() => {
@@ -106,7 +106,6 @@ export function PageEditor({ novelId, novelTitle, pages, editing, initialChapter
   const draft = mode === 'write' ? fromForm : fromJson
   const ready = draft?.ok ? draft.pages : []
   const preview = ready[0]
-  const words = text.trim() ? text.trim().split(/\s+/).length : 0
 
   function switchMode(next: Mode) {
     if (next === mode) return
@@ -129,30 +128,6 @@ export function PageEditor({ novelId, novelTitle, pages, editing, initialChapter
       }
     }
     setMode(next)
-  }
-
-  /** Wraps the selected words in a marker, or inserts a scene break. */
-  function format(kind: 'italic' | 'bold' | 'scene') {
-    const el = textRef.current
-    if (!el) return
-    const { selectionStart: a, selectionEnd: b } = el
-    let next: string
-    let cursor: [number, number]
-    if (kind === 'scene') {
-      const insert = '\n\n***\n\n'
-      next = text.slice(0, a) + insert + text.slice(b)
-      cursor = [a + insert.length, a + insert.length]
-    } else {
-      const mark = kind === 'bold' ? '**' : '*'
-      const selected = text.slice(a, b) || (kind === 'bold' ? 'bold words' : 'italic words')
-      next = text.slice(0, a) + mark + selected + mark + text.slice(b)
-      cursor = [a + mark.length, a + mark.length + selected.length]
-    }
-    setText(next)
-    requestAnimationFrame(() => {
-      el.focus()
-      el.setSelectionRange(...cursor)
-    })
   }
 
   async function save(andNext: boolean) {
@@ -257,28 +232,11 @@ export function PageEditor({ novelId, novelTitle, pages, editing, initialChapter
                 />
               </Field>
 
-              <Field label="Text" hint="Leave an empty line between paragraphs.">
-                <div className="rounded-md border border-line focus-within:border-accent bg-card">
-                  <div className="flex flex-wrap gap-1 border-b border-line px-2 py-1">
-                    <ToolButton onClick={() => format('italic')} title="Select words, then click to make them italic">
-                      <em>Italic</em>
-                    </ToolButton>
-                    <ToolButton onClick={() => format('bold')} title="Select words, then click to make them bold">
-                      <strong>Bold</strong>
-                    </ToolButton>
-                    <ToolButton onClick={() => format('scene')} title="Insert a break between scenes">
-                      * * * Scene break
-                    </ToolButton>
-                    <span className="ml-auto self-center text-xs text-muted tabular-nums">{words} words</span>
-                  </div>
-                  <textarea
-                    ref={textRef}
-                    className="w-full min-h-[18rem] border-0 bg-transparent font-book text-lg leading-relaxed focus:outline-none"
-                    placeholder={'Once upon a time…\n\nA new paragraph starts after an empty line.'}
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                  />
-                </div>
+              <Field
+                label="Text"
+                hint="Type like a normal document: Enter starts a new paragraph. Highlight words, then tap Bold or Italic (or press Ctrl+B / Ctrl+I). Pasting from Google Docs or Word keeps bold and italics."
+              >
+                <RichEditor value={text} onChange={setText} placeholder={'Once upon a time…'} />
               </Field>
 
               <details className="rounded-md border border-line px-3 py-2" open={Boolean(image)}>
@@ -391,20 +349,6 @@ function Field({
       {children}
       {hint && <div className="text-xs text-muted">{hint}</div>}
     </div>
-  )
-}
-
-function ToolButton({ onClick, title, children }: { onClick: () => void; title: string; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onMouseDown={(e) => e.preventDefault()} // keep the text selection while clicking
-      onClick={onClick}
-      title={title}
-      className="rounded px-2 py-1 text-sm text-muted hover:text-ink hover:bg-paper cursor-pointer"
-    >
-      {children}
-    </button>
   )
 }
 
