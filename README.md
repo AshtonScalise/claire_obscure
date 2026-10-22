@@ -20,11 +20,11 @@ Formatting inside `text`: blank line between paragraphs, `*italic*` or `_italic_
 
 ## Accounts
 
-Works like mAI Cookbook: anyone can create an account (email and password, or a magic link), and every account owns its books. Only a book's author can edit it, enforced by row-level security. Readers never need an account for published books.
+Works like mAI Cookbook: anyone can create an account (Discord, email and password, or a magic link), and every account owns its books. The first Discord sign-in creates the account. Only a book's author can edit it, enforced by row-level security. Readers never need an account for published books.
 
 New books start as drafts that only their author can see. Tick **Published** to make one public. Signed-in users get **My books** and **Everyone** tabs in the library.
 
-The database lives in the **mai-cookbook** Supabase project (the free tier allows two projects), in the tables `novels` and `novel_pages`. That project's GitHub integration applies the schema from the mai-cookbook repo; `supabase/migrations/` here is a copy for reference or for moving to a dedicated project later. Sign-up confirmation emails need this site's URL in that project's *Authentication → URL Configuration → Redirect URLs*.
+The database lives in the **mai-cookbook** Supabase project (the free tier allows two projects), in the tables `novels` and `novel_pages`. That project's GitHub integration applies the schema from the mai-cookbook repo; `supabase/migrations/` here is a copy for reference or for moving to a dedicated project later. Sign-up emails and Discord sign-in need this site's URL in that project's *Authentication → URL Configuration → Redirect URLs*. Discord also needs the provider enabled under *Authentication → Sign In / Providers → Discord*, with a Discord app whose OAuth2 redirect is `https://<project-ref>.supabase.co/auth/v1/callback`.
 
 ## Stack
 
