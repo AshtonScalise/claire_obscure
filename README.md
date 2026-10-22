@@ -24,7 +24,7 @@ Readers never sign in. Writing is limited to novel admins, enforced by row-level
 
 The database lives in the **mai-cookbook** Supabase project (free tier allows two projects), in tables prefixed for this app: `novel_admins`, `novels`, `novel_pages`. That project's GitHub integration applies the schema from the mai-cookbook repo; `supabase/migrations/` here is a copy for reference or for moving to a dedicated project later.
 
-There is no sign-up form here. Admins sign in with a **username**: the login page turns `name` into the address `name@claire-obscure.app` (never emailed; full emails also work). Create the admin in that project under *Authentication → Users → Add user* with that address and **Auto Confirm User** ticked, then mark them as a novel admin in the SQL editor:
+There is no sign-up form here, and admins sign in with **just a username**: the username is the only key, so anyone who knows it can edit. Behind the scenes the account is `name@claire-obscure.app` (never emailed) with the password set to the same `name` (Supabase requires 6+ characters). Create it in that project under *Authentication → Users → Add user* with **Auto Confirm User** ticked, then mark it as a novel admin in the SQL editor:
 
 ```sql
 insert into public.novel_admins (user_id)

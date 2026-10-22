@@ -4,12 +4,16 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth-context'
 import { Brand } from '../components/Layout'
 
-/** Supabase logins are emails, so a plain username is stored as `<username>@claire-obscure.app` (never mailed). */
-export const USERNAME_EMAIL_DOMAIN = 'claire-obscure.app'
+/**
+ * Username-only admin login, by request: the username is the only key.
+ * Supabase needs an email and a password, so the account is `<username>@claire-obscure.app`
+ * (never mailed) and its password is the username itself.
+ */
+const USERNAME_EMAIL_DOMAIN = 'claire-obscure.app'
 
-function toLoginEmail(login: string) {
-  const value = login.trim().toLowerCase()
-  return value.includes('@') ? value : `${value}@${USERNAME_EMAIL_DOMAIN}`
+function credentials(username: string) {
+  const name = username.trim().toLowerCase()
+  return { email: `${name}@${USERNAME_EMAIL_DOMAIN}`, password: name }
 }
 
 /** Admin sign-in only. Readers never need an account, and there is no sign-up. */
@@ -18,7 +22,6 @@ export function Login() {
   const location = useLocation()
   const from = (location.state as { from?: string } | null)?.from ?? '/'
   const [login, setLogin] = useState('')
-  const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,9 +31,9 @@ export function Login() {
     e.preventDefault()
     setBusy(true)
     setError(null)
-    const { error } = await supabase.auth.signInWithPassword({ email: toLoginEmail(login), password })
+    const { error } = await supabase.auth.signInWithPassword(credentials(login))
     setBusy(false)
-    if (error) setError(error.message === 'Invalid login credentials' ? 'Wrong username or password.' : error.message)
+    if (error) setError(error.message === 'Invalid login credentials' ? 'Unknown username.' : error.message)
   }
 
   return (
@@ -53,15 +56,6 @@ export function Login() {
           className="w-full"
           value={login}
           onChange={(e) => setLogin(e.target.value)}
-        />
-        <input
-          type="password"
-          required
-          autoComplete="current-password"
-          placeholder="password"
-          className="w-full"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
         />
         <button type="submit" className="btn btn-primary w-full" disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
