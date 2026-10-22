@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Clair (paper and ink) and obscur (candlelight on dark) */
+:root {
+  --paper: #f4eee3;
+  --card: #fbf7ef;
+  --ink: #1f1b16;
+  --muted: #6e6457;
+  --line: #ddd1bd;
+  --accent: #946618;
+  --accent-ink: #fbf7ef;
+  --danger: #9b2c2c;
+  color-scheme: light;
+}
+.dark {
+  --paper: #0f0d0b;
+  --card: #171410;
+  --ink: #ece3d3;
+  --muted: #9a8f7d;
+  --line: #2b261f;
+  --accent: #d4a24c;
+  --accent-ink: #15110b;
+  --danger: #e07a7a;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+  --font-display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --font-book: "EB Garamond", "Iowan Old Style", Georgia, serif;
+}
+
+body {
+  @apply bg-paper text-ink antialiased;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+input, textarea, select {
+  @apply bg-card border border-line rounded-md px-3 py-2 text-ink placeholder:text-muted focus:outline-none focus:border-accent;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed;
+}
+.btn-primary { @apply bg-accent text-accent-ink hover:opacity-90; }
+.btn-ghost { @apply border border-line text-ink hover:border-accent; }
+.btn-danger { @apply border border-danger/50 text-danger hover:bg-danger/10; }
+.btn-icon {
+  @apply inline-flex items-center justify-center rounded-md px-2 py-1 text-sm transition-colors cursor-pointer border border-transparent text-muted hover:text-ink hover:border-line disabled:opacity-30 disabled:cursor-not-allowed;
+}
+
+/* Book typography */
+.reading {
+  font-family: var(--font-book);
+  line-height: 1.7;
+  text-wrap: pretty;
+  hyphens: auto;
+}
+.reading p { margin: 0; }
+.reading p + p { text-indent: 1.5em; }
+.reading .scene-break {
+  text-align: center;
+  text-indent: 0;
+  margin: 1.2em 0;
+  color: var(--accent);
+  letter-spacing: 0.5em;
+}
+.reading .scene-break + p { text-indent: 0; }
+.reading .drop-cap::first-letter {
+  float: left;
+  font-family: var(--font-display);
+  font-size: 3.6em;
+  line-height: 0.8;
+  padding: 0.08em 0.1em 0 0;
+  color: var(--accent);
+}
+
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.page-in { animation: page-in 0.35s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .page-in { animation: none; }
+}
