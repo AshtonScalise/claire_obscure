@@ -12,7 +12,9 @@ Prefer JSON? Every page editor has a **Paste JSON** tab, described below.
 
 ## Reading
 
-Each book shows as a 3D hardback that swings open when you start reading. Pages turn with a GSAP page flip (skipped when the system asks for reduced motion), with arrow keys, swipes, or the Previous / Next buttons.
+Library → book → contents → pages. Each book shows as a 3D hardback; tapping it swings the cover open onto the **Contents** page, where readers pick a chapter or continue where they left off. Pages turn with a GSAP page flip: buttons, arrow keys, or on phones a swipe (left for next, right for back) that follows the finger and falls back if let go early. Reduced-motion users get instant turns.
+
+Going up a level works everywhere: the back button in the top-left, or **Esc**. Reader → Contents → Book → Library. Finishing the book (Next or a swipe on the last page) returns to the contents.
 
 ## Page JSON
 

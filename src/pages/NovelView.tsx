@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useNovel } from '../lib/useNovel'
-import { chaptersOf, wordCount } from '../lib/book'
+import { wordCount } from '../lib/book'
 import { readStored } from '../lib/theme'
 import { Book3D, type Book3DHandle } from '../components/Book3D'
 
@@ -14,25 +14,26 @@ export function NovelView() {
   if (error) return <p className="text-danger text-sm">{error}</p>
   if (loading || !novel || !pages) return <p className="text-muted text-sm">Loading…</p>
 
-  const chapters = chaptersOf(pages).filter((c) => c.title)
   const words = wordCount(pages)
   const saved = Number(readStored(`co:pos:${id}`))
   const resumeAt = Number.isInteger(saved) && saved > 0 && saved < pages.length ? saved : 0
 
-  /** The cover swings open before the reader appears. */
-  async function openAt(page: number) {
+  /** The cover swings open, then we drill into the contents (or straight to a saved page). */
+  async function open(to: string) {
     await bookRef.current?.open()
-    navigate(`/n/${id}/read?p=${page}`)
+    navigate(to)
   }
+  const contents = `/n/${id}/chapters`
 
   return (
     <div className="grid gap-12 md:grid-cols-[17rem_1fr] items-start">
       <div className="max-w-[15rem] md:max-w-none mx-auto md:mx-0 w-full md:pt-4">
         <button
           className="block w-full cursor-pointer disabled:cursor-default"
-          onClick={() => pages.length > 0 && openAt(resumeAt + 1)}
+          onClick={() => pages.length > 0 && open(contents)}
           disabled={pages.length === 0}
-          aria-label={pages.length ? 'Open the book' : undefined}
+          aria-label={pages.length ? 'Open the book to its contents' : undefined}
+          title={pages.length ? 'Open the book' : undefined}
         >
           <Book3D ref={bookRef} title={novel.title} author={novel.data.author} image={novel.data.cover_image} />
         </button>
@@ -59,21 +60,18 @@ export function NovelView() {
         )}
 
         <div className="flex flex-wrap gap-2">
-          {pages.length > 0 &&
-            (resumeAt > 0 ? (
-              <>
-                <button className="btn btn-primary" onClick={() => openAt(resumeAt + 1)}>
-                  Continue reading · page {resumeAt + 1}
-                </button>
-                <button className="btn btn-ghost" onClick={() => openAt(1)}>
-                  Start from the beginning
-                </button>
-              </>
-            ) : (
-              <button className="btn btn-primary" onClick={() => openAt(1)}>
-                Start reading
+          {pages.length > 0 && (
+            <>
+              <button className="btn btn-primary" onClick={() => open(contents)}>
+                Open the book
               </button>
-            ))}
+              {resumeAt > 0 && (
+                <button className="btn btn-ghost" onClick={() => open(`/n/${id}/read?p=${resumeAt + 1}`)}>
+                  Continue · page {resumeAt + 1}
+                </button>
+              )}
+            </>
+          )}
           {isOwner && (
             <>
               <Link to={`/n/${id}/manage`} className="btn btn-ghost">
@@ -92,24 +90,6 @@ export function NovelView() {
           <p className="text-muted">Your book is empty. Click “Write a page” to start Chapter 1.</p>
         )}
 
-        {chapters.length > 0 && (
-          <div>
-            <h2 className="font-display text-2xl mb-2">Chapters</h2>
-            <ol className="divide-y divide-line border-y border-line">
-              {chapters.map((c) => (
-                <li key={c.start}>
-                  <button
-                    onClick={() => openAt(c.start + 1)}
-                    className="w-full flex justify-between gap-4 py-2 hover:text-accent cursor-pointer text-left"
-                  >
-                    <span className="font-display text-lg">{c.title}</span>
-                    <span className="text-sm text-muted tabular-nums">p. {c.start + 1}</span>
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
       </div>
     </div>
   )

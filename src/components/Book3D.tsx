@@ -38,8 +38,15 @@ export function Book3D({ title, author, image, ref }: Props) {
     open: () =>
       new Promise<void>((resolve) => {
         if (reduced || !bookRef.current || !coverRef.current) return resolve()
+        // Browsers pause animation frames in background tabs; never leave the reader waiting on one.
+        const fallback = window.setTimeout(resolve, 1600)
         gsap
-          .timeline({ onComplete: resolve })
+          .timeline({
+            onComplete: () => {
+              window.clearTimeout(fallback)
+              resolve()
+            },
+          })
           .to(bookRef.current, { rotateY: 0, rotateX: 0, scale: 1.04, duration: 0.45, ease: 'power2.out' })
           .to(coverRef.current, { rotateY: -165, duration: 0.8, ease: 'power2.inOut' }, '-=0.1')
       }),

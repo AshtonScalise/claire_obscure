@@ -8,6 +8,8 @@ import { BookReader } from './components/BookReader'
 import { Library } from './pages/Library'
 import { NovelView } from './pages/NovelView'
 import { ReaderPage } from './pages/ReaderPage'
+import { ChaptersPage } from './pages/ChaptersPage'
+import { ChaptersView } from './components/ChaptersView'
 import { NovelNew } from './pages/NovelNew'
 import { NovelManage } from './pages/NovelManage'
 import { PageEdit, PageEditor } from './pages/PageEdit'
@@ -47,7 +49,21 @@ export default function App() {
               title="The Lantern Keeper"
               author="A sample"
               pages={EXAMPLE_PAGES.map(splitChapter)}
-              backTo="/"
+              backTo="/preview/chapters"
+              storageKey="co:pos:preview"
+            />
+          }
+        />
+        <Route
+          path="/preview/chapters"
+          element={
+            <ChaptersView
+              title="The Lantern Keeper"
+              author="A sample"
+              pages={SAMPLE_ROWS}
+              readPath="/preview"
+              upTo="/"
+              upLabel="Book"
               storageKey="co:pos:preview"
             />
           }
@@ -73,6 +89,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/n/:id/chapters" element={<ChaptersPage />} />
       <Route path="/n/:id/read" element={<ReaderPage />} />
       <Route element={<Layout />}>
         <Route index element={<Library />} />

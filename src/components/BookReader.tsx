@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { gsap } from 'gsap'
 import { chapterAt, chaptersOf, type BookPage, type Chapter } from '../lib/book'
 import { readStored, writeStored } from '../lib/theme'
 import { PageView } from './PageView'
+import { Sheet } from './Sheet'
 import { ThemeToggle } from './ThemeToggle'
 
 type Props = {
   title: string
   author?: string
   pages: BookPage[]
-  /** where the back link and "The End" lead */
+  /** one level up (the contents page): the back button, Esc, and the end of the book lead here */
   backTo: string
+  backLabel?: string
   /** localStorage key that remembers the reader's page */
   storageKey: string
 }
@@ -20,6 +22,7 @@ const FONT_KEY = 'co:font'
 const FONT_MIN = 16
 const FONT_MAX = 26
 const TURN_SECONDS = 0.75
+const OPEN_ANGLE = -118 // how far a turned page swings before it is gone
 
 function clamp(n: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, n))
@@ -29,11 +32,23 @@ function prefersReducedMotion() {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-/** A page turn in progress: `from` is the page being left, `to` the page being opened. */
-type Turn = { from: number; to: number }
+/** A page turn in progress. `manual` turns follow the reader's finger instead of playing on their own. */
+type Turn = { from: number; to: number; manual?: boolean }
+
+/** A touch in progress: undecided, scrolling the page, dragging a page, or past the last page. */
+type Drag = {
+  x: number
+  y: number
+  t: number
+  width: number
+  mode: 'pending' | 'scroll' | 'turn' | 'instant' | 'end'
+  dir: 1 | -1
+  progress: number
+}
 
 /** Full-screen paged reader with GSAP page turns. The page lives in the URL (?p=12). */
-export function BookReader({ title, author, pages, backTo, storageKey }: Props) {
+export function BookReader({ title, author, pages, backTo, backLabel = 'Contents', storageKey }: Props) {
+  const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const total = pages.length
   const requested = Number(params.get('p'))
@@ -57,28 +72,36 @@ export function BookReader({ title, author, pages, backTo, storageKey }: Props) 
   /** Turn to a page. Neighbours flip like paper; jumps (chapter menu, Home/End) cut straight there. */
   const go = useCallback(
     (i: number) => {
-      const to = clamp(i, 0, total - 1)
       setTocOpen(false)
-      if (to === index || turn) return
+      if (turn) return
+      if (i > total - 1) return navigate(backTo) // past the last page: back to the contents
+      const to = clamp(i, 0, total - 1)
+      if (to === index) return
       window.scrollTo({ top: 0 })
       if (Math.abs(to - index) === 1 && !prefersReducedMotion()) setTurn({ from: index, to })
       else settle(to)
     },
-    [index, settle, total, turn],
+    [backTo, index, navigate, settle, total, turn],
   )
 
-  // The paper that moves: when going forward the current page swings away to reveal the next;
+  // The paper that moves: going forward the current page swings away to reveal the next;
   // going back, the previous page swings in over the current one.
   const flipRef = useRef<HTMLDivElement>(null)
   const shadeRef = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
     if (!turn || !flipRef.current || !shadeRef.current) return
     const forward = turn.to > turn.from
+    if (turn.manual) {
+      // Start where the finger is (nothing moved yet); touchmove drives it from here.
+      gsap.set(flipRef.current, { rotateY: forward ? 0 : OPEN_ANGLE })
+      gsap.set(shadeRef.current, { opacity: forward ? 0 : 0.55 })
+      return
+    }
     const tl = gsap.timeline({ onComplete: () => settle(turn.to) })
     tl.fromTo(
       flipRef.current,
-      { rotateY: forward ? 0 : -118 },
-      { rotateY: forward ? -118 : 0, duration: TURN_SECONDS, ease: 'power2.inOut' },
+      { rotateY: forward ? 0 : OPEN_ANGLE },
+      { rotateY: forward ? OPEN_ANGLE : 0, duration: TURN_SECONDS, ease: 'power2.inOut' },
       0,
     )
     tl.fromTo(
@@ -87,7 +110,10 @@ export function BookReader({ title, author, pages, backTo, storageKey }: Props) 
       { opacity: forward ? 0.55 : 0, duration: TURN_SECONDS, ease: 'power1.inOut' },
       0,
     )
+    // Background tabs pause animation frames; finish the turn anyway so the reader never gets stuck.
+    const fallback = window.setTimeout(() => tl.progress(1), (TURN_SECONDS + 0.5) * 1000)
     return () => {
+      window.clearTimeout(fallback)
       tl.kill()
     }
   }, [turn, settle])
@@ -102,25 +128,103 @@ export function BookReader({ title, author, pages, backTo, storageKey }: Props) 
       else if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(index - 1)
       else if (e.key === 'Home') go(0)
       else if (e.key === 'End') go(total - 1)
-      else if (e.key === 'Escape') setTocOpen(false)
-      else return
+      else if (e.key === 'Escape') {
+        if (tocOpen) setTocOpen(false)
+        else navigate(backTo) // drill up to the contents
+      } else return
       e.preventDefault()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [go, index, total])
+  }, [backTo, go, index, navigate, tocOpen, total])
 
-  const touch = useRef<{ x: number; y: number } | null>(null)
+  // Swipe left = next page, swipe right = previous page. The page follows the finger.
+  const drag = useRef<Drag | null>(null)
+
   function onTouchStart(e: React.TouchEvent) {
-    touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    if (turn || e.touches.length > 1) return
+    const t = e.touches[0]
+    drag.current = {
+      x: t.clientX,
+      y: t.clientY,
+      t: performance.now(),
+      width: window.innerWidth,
+      mode: 'pending',
+      dir: 1,
+      progress: 0,
+    }
   }
+
+  function onTouchMove(e: React.TouchEvent) {
+    const d = drag.current
+    if (!d) return
+    const t = e.touches[0]
+    const dx = t.clientX - d.x
+    const dy = t.clientY - d.y
+    if (d.mode === 'pending') {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return
+      if (Math.abs(dx) <= Math.abs(dy)) {
+        d.mode = 'scroll' // a vertical scroll, leave it alone
+        return
+      }
+      d.dir = dx < 0 ? 1 : -1
+      const target = index + d.dir
+      if (target < 0) d.mode = 'scroll'
+      else if (target > total - 1) d.mode = 'end'
+      else if (prefersReducedMotion()) d.mode = 'instant'
+      else {
+        d.mode = 'turn'
+        setTurn({ from: index, to: target, manual: true })
+      }
+      return
+    }
+    if (d.mode !== 'turn' || !flipRef.current || !shadeRef.current) return
+    const p = clamp((d.dir === 1 ? -dx : dx) / (d.width * 0.7), 0, 1)
+    d.progress = p
+    const forward = d.dir === 1
+    gsap.set(flipRef.current, { rotateY: OPEN_ANGLE * (forward ? p : 1 - p) })
+    gsap.set(shadeRef.current, { opacity: 0.55 * (forward ? p : 1 - p) })
+  }
+
   function onTouchEnd(e: React.TouchEvent) {
-    const start = touch.current
-    touch.current = null
-    if (!start) return
-    const dx = e.changedTouches[0].clientX - start.x
-    const dy = e.changedTouches[0].clientY - start.y
-    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? index + 1 : index - 1)
+    const d = drag.current
+    drag.current = null
+    if (!d) return
+    const dx = e.changedTouches[0].clientX - d.x
+    const flick = Math.abs(dx) > 40 && performance.now() - d.t < 280
+    const far = Math.abs(dx) > 60
+    if (d.mode === 'end') {
+      if (dx < 0 && (far || flick)) navigate(backTo)
+      return
+    }
+    if (d.mode === 'instant') {
+      if (far || flick) settle(index + d.dir)
+      return
+    }
+    if (d.mode !== 'turn' || !flipRef.current || !shadeRef.current) return
+    // Let go past a third of the way (or with a flick) and the page finishes turning; otherwise it falls back.
+    const commit = d.progress > 0.33 || flick
+    const forward = d.dir === 1
+    const done = commit ? 1 : 0
+    const remaining = Math.abs(done - d.progress)
+    const target = index + d.dir
+    let finished = false
+    const release = gsap
+      .timeline({
+        onComplete: () => {
+          finished = true
+          if (commit) settle(target)
+          else setTurn(null)
+        },
+      })
+      .to(flipRef.current, {
+        rotateY: OPEN_ANGLE * (forward ? done : 1 - done),
+        duration: 0.15 + 0.45 * remaining,
+        ease: 'power2.out',
+      })
+      .to(shadeRef.current, { opacity: 0.55 * (forward ? done : 1 - done), duration: 0.15 + 0.45 * remaining }, 0)
+    window.setTimeout(() => !finished && release.progress(1), 1100)
+    if (commit) window.scrollTo({ top: 0 })
   }
 
   if (total === 0)
@@ -130,7 +234,7 @@ export function BookReader({ title, author, pages, backTo, storageKey }: Props) 
           <p className="font-display text-2xl">{title}</p>
           <p className="mt-2 text-muted">This book has no pages yet.</p>
           <Link to={backTo} className="btn btn-ghost mt-6">
-            Back
+            ← {backLabel}
           </Link>
         </div>
       </div>
@@ -140,28 +244,34 @@ export function BookReader({ title, author, pages, backTo, storageKey }: Props) 
   const forward = turn ? turn.to > turn.from : true
   const basePage = turn ? (forward ? turn.to : turn.from) : index
   const flipPage = turn ? (forward ? turn.from : turn.to) : null
-  const shownIndex = turn ? turn.to : index
+  const shownIndex = turn && !turn.manual ? turn.to : index
   const current = chapterAt(chapters, shownIndex)
   const last = shownIndex === total - 1
 
   return (
-    <div className="min-h-screen flex flex-col bg-desk" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+    <div
+      className="min-h-screen flex flex-col bg-desk [touch-action:pan-y]"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchEnd}
+    >
       <header className="sticky top-0 z-20 bg-paper/90 backdrop-blur border-b border-line">
         <div className="mx-auto max-w-3xl px-3 py-2 flex items-center gap-2">
-          <Link to={backTo} className="btn-icon shrink-0" title="Back to the book">
-            ←
+          <Link to={backTo} className="btn btn-ghost py-1 text-sm shrink-0" title="Up to the contents (Esc)">
+            ← {backLabel}
           </Link>
           <div className="min-w-0 flex-1 text-center">
             <div className="truncate font-display text-lg leading-tight">{title}</div>
             {current?.title && <div className="truncate text-xs text-muted">{current.title}</div>}
           </div>
           {hasChapters && (
-            <button className="btn-icon" onClick={() => setTocOpen((o) => !o)} title="Chapters" aria-expanded={tocOpen}>
+            <button className="btn-icon" onClick={() => setTocOpen((o) => !o)} title="Jump to a chapter" aria-expanded={tocOpen}>
               ☰
             </button>
           )}
           <button
-            className="btn-icon font-display"
+            className="btn-icon font-display hidden sm:inline-flex"
             onClick={() => setFontSize((s) => clamp(s - 1, FONT_MIN, FONT_MAX))}
             disabled={fontSize <= FONT_MIN}
             title="Smaller text"
@@ -170,9 +280,8 @@ export function BookReader({ title, author, pages, backTo, storageKey }: Props) 
           </button>
           <button
             className="btn-icon font-display text-lg"
-            onClick={() => setFontSize((s) => clamp(s + 1, FONT_MIN, FONT_MAX))}
-            disabled={fontSize >= FONT_MAX}
-            title="Larger text"
+            onClick={() => setFontSize((s) => (s >= FONT_MAX ? FONT_MIN : s + 1))}
+            title="Text size"
           >
             A+
           </button>
@@ -186,21 +295,12 @@ export function BookReader({ title, author, pages, backTo, storageKey }: Props) 
         </div>
       </header>
 
-      {tocOpen && (
-        <TableOfContents chapters={chapters} current={current} onPick={(c) => go(c.start)} />
-      )}
+      {tocOpen && <TableOfContents chapters={chapters} current={current} onPick={(c) => go(c.start)} />}
 
       <main className="flex-1 w-full px-3 py-6 sm:py-10">
         <div className="relative mx-auto w-full max-w-[40rem] [perspective:2200px]" style={{ fontSize: `${fontSize}px` }}>
           <Sheet>
-            <PageContent
-              pages={pages}
-              i={basePage}
-              chapters={chapters}
-              title={title}
-              author={author}
-              backTo={backTo}
-            />
+            <PageContent pages={pages} i={basePage} chapters={chapters} title={title} author={author} backTo={backTo} />
           </Sheet>
           {flipPage !== null && (
             <div
@@ -208,14 +308,7 @@ export function BookReader({ title, author, pages, backTo, storageKey }: Props) 
               className="absolute inset-x-0 top-0 h-full origin-left [transform-style:preserve-3d] [backface-visibility:hidden] will-change-transform z-10"
             >
               <Sheet className="h-full overflow-hidden">
-                <PageContent
-                  pages={pages}
-                  i={flipPage}
-                  chapters={chapters}
-                  title={title}
-                  author={author}
-                  backTo={backTo}
-                />
+                <PageContent pages={pages} i={flipPage} chapters={chapters} title={title} author={author} backTo={backTo} />
               </Sheet>
               <div
                 ref={shadeRef}
@@ -234,23 +327,17 @@ export function BookReader({ title, author, pages, backTo, storageKey }: Props) 
           <span className="text-sm text-muted tabular-nums">
             {shownIndex + 1} / {total}
           </span>
-          <button className="btn btn-primary w-28" onClick={() => go(index + 1)} disabled={last}>
-            Next →
-          </button>
+          {last ? (
+            <Link to={backTo} className="btn btn-primary w-28">
+              {backLabel} ↑
+            </Link>
+          ) : (
+            <button className="btn btn-primary w-28" onClick={() => go(index + 1)}>
+              Next →
+            </button>
+          )}
         </div>
       </footer>
-    </div>
-  )
-}
-
-/** A sheet of paper: soft shadow, rounded fore-edge, and a darker gutter along the spine. */
-function Sheet({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div
-      className={`relative rounded-r-lg rounded-l-sm bg-paper shadow-[0_18px_40px_-18px_rgba(0,0,0,0.45)] border border-line ${className}`}
-    >
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-8 rounded-l-sm bg-gradient-to-r from-black/10 to-transparent dark:from-black/40" />
-      <div className="px-7 sm:px-12 py-10 sm:py-14 min-h-[70vh]">{children}</div>
     </div>
   )
 }
@@ -281,7 +368,7 @@ function PageContent(props: {
         <div className="mt-8 text-center">
           <div className="font-display text-2xl text-accent">The End</div>
           <Link to={backTo} className="btn btn-ghost mt-4 text-sm">
-            Back to the book
+            Back to the contents
           </Link>
         </div>
       )}

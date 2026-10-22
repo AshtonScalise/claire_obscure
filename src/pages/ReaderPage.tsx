@@ -24,7 +24,8 @@ export function ReaderPage() {
       title={novel.title}
       author={novel.data.author}
       pages={pages}
-      backTo={`/n/${id}`}
+      backTo={`/n/${id}/chapters`}
+      backLabel="Contents"
       storageKey={`co:pos:${id}`}
     />
   )

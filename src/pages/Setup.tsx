@@ -10,7 +10,7 @@ export function Setup() {
 
   async function openSample() {
     await book.current?.open()
-    navigate('/preview?p=1')
+    navigate('/preview/chapters')
   }
 
   return (
