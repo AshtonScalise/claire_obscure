@@ -16,7 +16,13 @@ export function Brand() {
 function authErrorFrom(search: string, hash: string): string | null {
   const raw =
     new URLSearchParams(search).get('error_description') ?? new URLSearchParams(hash.slice(1)).get('error_description')
-  return raw ? decodeURIComponent(raw.replace(/\+/g, ' ')) : null
+  if (!raw) return null
+  const text = raw.replace(/\+/g, ' ')
+  try {
+    return decodeURIComponent(text) // the #hash copy arrives encoded twice
+  } catch {
+    return text
+  }
 }
 
 export function Layout() {
